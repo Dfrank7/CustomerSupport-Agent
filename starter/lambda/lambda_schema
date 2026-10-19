@@ -20,7 +20,8 @@
       },
       "required": [
         "order_id",
-        "reason"
+        "reason",
+        "amount"
       ]
     }
   },

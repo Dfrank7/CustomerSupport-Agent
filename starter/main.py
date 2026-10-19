@@ -353,7 +353,9 @@ You have access to tools for:
 4. Calculating exact loyalty discounts (`calculate_loyalty_discount`) using the Code Interpreter
 5. Browsing live web pages (`browser`) when asked to visit a URL or retrieve live web information
 
-Always use the appropriate tool to ground your answers, respect customer preferences stored in context, and provide clear, accurate responses."""
+Always use the appropriate tool to ground your answers, respect customer preferences stored in context, and provide clear, accurate responses.
+
+Before initiating a refund, look up the order with the order tool and pass its total as the refund amount. Never send $0."""
 
 
 @app.entrypoint
@@ -388,8 +390,19 @@ async def invoke(payload, context=None):
 
         mcp_client = MCPClient(lambda: streamable_http_client(GATEWAY_URL))
         with mcp_client:
-            gateway_tools = mcp_client.list_tools_sync()
-            tools.extend(gateway_tools)
+            try:
+                gateway_tools = mcp_client.list_tools_sync()
+                tools.extend(gateway_tools)
+                logger.info("Gateway connected successfully.")
+            except TimeoutError:
+                logger.exception("Gateway tool loading timed out")
+                return "I could not reach the order and refund tools. Please try again."
+            except ConnectionError:
+                logger.exception("Gateway connection failed")
+                return "I could not reach the order and refund tools. Please try again."
+            except Exception:
+                logger.exception("Gateway tool loading failed")
+                return "I could not reach the order and refund tools. Please try again."
 
             agent = Agent(
                 model=model,
